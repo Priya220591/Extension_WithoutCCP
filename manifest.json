@@ -1,0 +1,40 @@
+{
+    "manifest_version": 3,
+    "name": "P3Fusion Test Connect Extension",
+    "version": "1.0.0",
+    "description": "App to call extensions in Amazon Connect",
+    "permissions": [
+      "tabs",
+      "activeTab",
+      "windows",
+      "storage",
+      "identity",
+      "cookies",
+      "webRequest",
+      "webNavigation",
+      "scripting"
+    ],
+    "host_permissions": [
+      "https://p3fusion-learning.my.connect.aws/agent-app-v2/*",
+      "https://*.my.connect.aws/*",
+      "https://*.awsapps.com/*"
+    ],
+    "content_scripts": [
+      {
+        "matches": ["https://*.connect.aws/*"],
+        "js": ["content.js"],
+        "run_at": "document_end",
+        "type": "module"
+      }
+    ],
+    "web_accessible_resources":[
+        {
+            "resources":["pageScript.js"],
+            "matches":["https://*.my.connect.aws/*"]
+        }
+    ],
+    "externally_connectable": {
+      "matches": ["http://127.0.0.1:8080/*"]
+    }
+  }
+  
