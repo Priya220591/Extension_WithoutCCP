@@ -3,7 +3,7 @@ const script = document.createElement("script");
 script.src = chrome.runtime.getURL("pageScript.js");
 (document.head || document.documentElement).appendChild(script);
 script.onload = () => { script.remove();
-    window.postMessage({action: "initializeCCP"});
+    // window.postMessage({action: "initializeCCP"});
 }
 
 // Add a button to the DOM
