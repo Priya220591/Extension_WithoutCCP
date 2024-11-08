@@ -3,7 +3,6 @@ const script = document.createElement("script");
 script.src = chrome.runtime.getURL("pageScript.js");
 (document.head || document.documentElement).appendChild(script);
 script.onload = () => { script.remove();
-    // window.postMessage({action: "initializeCCP"});
 }
 
 // Add a button to the DOM
@@ -88,7 +87,7 @@ function openSearchPopup() {
       }, "*");
   
       // Close the popup after search
-      document.body.removeChild(popup);
+    //   document.body.removeChild(popup);
     });
   
     // Append elements to the popup
