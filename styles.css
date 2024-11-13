@@ -1,0 +1,116 @@
+
+  .search-fields {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-end; 
+  }
+  
+  
+  .field-group {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .field-group label {
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #333;
+  }
+  
+  .field-group input {
+    padding: 8px;
+    width: 200px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+  }
+  
+  /* Search icon styling */
+  .search-icon {
+    background-color: #007bff;
+    padding: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .search-icon img {
+    width: 24px;
+    height: 24px;
+    filter: invert(1); 
+  }
+  
+  .search-icon:hover {
+    background-color: #0056b3;
+  }
+  
+  
+  #result {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #333;
+  }
+  
+  .result-item {
+    display: flex;
+    justify-content: space-between; 
+    align-items: center;            
+    background-color: #f9f9f9;
+    /* border: 1px solid #ccc; */
+    padding: 5px 10px; /* Increase padding for more space inside the result item */
+    border-radius: 8px;
+    margin-bottom: 5px;
+    margin-right: 15px; /* Increase margin to separate items */
+    font-size: 14px;
+    max-width: 800px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .result-item .name {
+    flex-grow: 1; 
+    margin-right: 60px; /* Increase margin to space out from the call button */
+    font-weight: 500;
+  }
+  
+  .call-button {
+    padding: 5px 10px; /* Increase padding for a larger button */
+    background-color: #10a5db;
+    color: white;
+    border: none;
+    border-radius: 11px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-left: 100px;
+    transition: background-color 0.3s; /* Smooth transition effect on hover */
+  }
+  .button-style {
+    padding: 5px 10px; /* Increase padding for a larger button */
+    background-color: #10a5db;
+    color: white;
+    border: none;
+    border-radius: 11px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s; /* Smooth transition effect on hover */
+  }
+  
+  .call-button:hover {
+    background-color: #0056b3; /* Darker color on hover */
+  }
+  
+  #myDynamicDiv {
+    display: block; /* Ensure the div is visible */
+    margin-top: 20px; /* Space between the search fields and this div */
+    width: 90%; /* Adjust width to better fit within the container */
+    max-width: 800px; /* Ensure it doesn't stretch too wide */
+    background-color: #f0f0f0; /* Light background color for visibility */
+    border: 1px solid #ccc; /* Subtle border to define the div */
+    padding: 15px; /* Padding inside the div for spacing */
+    border-radius: 8px; /* Rounded corners for a nicer look */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Light shadow for a raised effect */
+  }
+  

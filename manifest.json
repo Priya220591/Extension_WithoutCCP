@@ -23,13 +23,14 @@
       {
         "matches": ["https://*.connect.aws/*"],
         "js": ["content.js"],
+        "css":["styles.css"],
         "run_at": "document_end",
         "type": "module"
       }
     ],
     "web_accessible_resources":[
         {
-            "resources":["pageScript.js"],
+            "resources":["pageScript.js","phone_logo.png"],
             "matches":["https://*.my.connect.aws/*"]
         }
     ],

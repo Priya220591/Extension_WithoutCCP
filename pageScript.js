@@ -1,16 +1,21 @@
-let agentInstance=null;
+let agentInstance = null;
+let instanceName = "";
 // Function to initialize the agent after a delay of 1 second
 function initializeAgent() {
-  
-  if (window.connect && typeof window.connect.agent === "function") {
-    console.log("Test Extension: Connect object and agent available");
-
-    try {
-      connect.agent(function (agent) {
-        console.log("Agent callback triggered");
-        console.log("Agent initialized:", agent);
-        agentInstance=agent;
-        const config = agent.getConfiguration();
+ 
+  const interval = setInterval(()=>{
+    if (window.connect && typeof window.connect.agent === "function") {
+      console.log("Retrying");
+      if(connect.agent){
+ 
+      clearInterval(interval);
+      console.log("Test Extension: Connect object and agent available");
+     
+      try {
+        connect.agent(function (agent) {
+          console.log("Agent initialized:", agent);
+          agentInstance = agent;
+          const config = agent.getConfiguration();
           const agentName =
             config.firstName && config.lastName
               ? `${config.firstName} ${config.lastName}`
@@ -18,151 +23,248 @@ function initializeAgent() {
           const agentUserName = agent.getConfiguration().username;
           console.log(agentName);
           console.log(agentUserName);
-        connect.contact(function (contact) {
-          console.log("New contact initiated:", contact);
-
-          contact.onConnecting(function () {
-            console.log("Test Extension: onConnecting Event");
-            if (contact.isInbound()) {
-              console.log("Call connecting");
-              console.log(
-                "the attributes are",
-                JSON.stringify(contact.getAttributes())
-              );
-              const { AgentName, CallType } = contact.getAttributes();
-              if (CallType.value === "InternalCalling") {
-                chrome.runtime.sendMessage(
-                  extensionId,
-                  {
-                    action: "sendAgentName",
-                    agentName: AgentName ? AgentName.value : "Unknown Agent",
-                  },
-                  (response) => {
-                    if (chrome.runtime.lastError) {
-                      console.error(
-                        "Error sending message:",
-                        chrome.runtime.lastError
-                      );
-                    } else {
-                      console.log(
-                        "Response from background script:",
-                        response
-                      );
-                    }
-                  }
+          connect.contact(function (contact) {
+            console.log("New contact initiated:", contact);
+ 
+            contact.onConnecting(function () {
+              console.log("Test Extension: onConnecting Event");
+              if (contact.isInbound()) {
+                console.log(
+                  "the attributes are",
+                  JSON.stringify(contact.getAttributes())
                 );
-                console.log("Caller ID div updated with incoming call info");
-              } else {
-                console.error("Caller ID not displayed in the div");
-              }
-            }
-          });
-
-
-          contact.onConnected(async function () {
-            console.log("Test Extension: onConnected Event");
-            if (!contact.isInbound()) {
-              try {
-                const updateAttributesParams = {
-                  AgentName: agentName,
-                  CallType: "InternalCalling",
-                  ContactId: contact.getContactId(),
-                  action: "update contact attribute",
-                };
-                await invokeLambda(updateAttributesParams);
-
-                console.log("Attributes updated successfully");
-
-                if (window.endpointMatched) {
-                  console.log(
-                    "inside window endpointmatched,",
-                    window.endpointMatched
-                  );
-
-                  const currentContact = agentInstance.getContacts(
-                    connect.ContactType.VOICE
-                  )[0];
-                  // Initiating transfer to the quick connect agent
-                  console.log(agentName,agentUserName);
-                  
-                  await addConnectionAsync(
-                    currentContact,
-                    window.endpointMatched,agentUserName,agentName
-                  );
-                  console.log(agentName, window.endpointMatched.name);
-                  console.log("Transfer success");
-                  window.transferEndpoint = "";
+                const { AgentName, CallType } = contact.getAttributes();
+                if (CallType.value === "InternalCalling") {
+                  window.postMessage({
+                    action: "SHOW_DIV",
+                    agentName: AgentName ? AgentName.value : "Unknown Agent",
+                  });
+                  console.log("Caller ID div updated with incoming call info");
                 } else {
-                  console.error("No transfer endpoint found");
-                  // alert("No transfer endpoint available");
+                  console.error("Caller ID not displayed in the div");
                 }
-              } catch (error) {
-                console.error("Error during transfer or connection:", error);
-                alert("Transfer failed");
               }
-            } else {
-              console.log("The contact is inbound");
-            }
-          });
-          contact.onEnded(function () {
-            console.log("Test Extension: onEnded Event");
+            });
+ 
+            contact.onConnected(async function () {
+              console.log("Test Extension: onConnected Event");
+              if (!contact.isInbound()) {
+                try {
+                  const updateAttributesParams = {
+                    AgentName: agentName,
+                    CallType: "InternalCalling",
+                    ContactId: contact.getContactId(),
+                    action: "update contact attribute",
+                  };
+                  await invokeLambda(updateAttributesParams);
+ 
+                  console.log("Attributes updated successfully");
+ 
+                  if (window.endpointMatched) {
+                    console.log(
+                      "inside window endpointmatched,",
+                      window.endpointMatched
+                    );
+ 
+                    const currentContact = agentInstance.getContacts(
+                      connect.ContactType.VOICE
+                    )[0];
+                    // Initiating transfer to the quick connect agent
+ 
+                    await addConnectionAsync(
+                      currentContact,
+                      window.endpointMatched,
+                      agentUserName,
+                      agentName
+                    );
+                    console.log("Transfer success");
+                    window.transferEndpoint = "";
+                  } else {
+                    console.error("No transfer endpoint found");
+                    // alert("No transfer endpoint available");
+                  }
+                } catch (error) {
+                  console.error("Error during transfer or connection:", error);
+                  alert("Transfer failed");
+                }
+              } else {
+                console.log("The contact is inbound");
+              }
+            });
+ 
+            contact.onMissed(async function () {
+              console.log("Call was missed");
+              const updateAttributesParams = {
+                isMissed: "true",
+                ContactId: contact.getContactId(),
+                action: "update contact attribute",
+              };
+              console.log(
+                "The update attribute params inside onmissed",
+                updateAttributesParams
+              );
+ 
+              await invokeLambda(updateAttributesParams);
+ 
+              console.log("Attributes updated successfully");
+              // const sourceAgent = contact.getAttributes().AgentName;
+              window.postMessage({
+                action: "HIDE_DIV",
+              });
+            });
+            contact.onEnded(function () {
+              console.log("Test Extension: onEnded Event");
+              try {
+                window.postMessage({
+                  action: "HIDE_DIV",
+                });
+ 
+                const activeContacts = agentInstance.getContacts(
+                  connect.ContactType.VOICE
+                );
+                const connectedContacts = activeContacts.filter(
+                  (contact) => contact.getStatus().type === "connected"
+                );
+                if (connectedContacts.length > 0) {
+                  console.log(
+                    "Other contacts are still connected. No action will be taken."
+                  );
+                  return;
+                }
+                const contactState = contact.getState().type;
+                console.log("The contact state is", contactState);
+ 
+                setTimeout(async () => {
+                  console.log("first contact id is", contact.getContactId());
+ 
+                  const secondContactId = contact.getAttributes().ContactId.value;
+                  console.log("second contact id is", secondContactId);
+                  const getAttributesParams = {
+                    ContactId: secondContactId,
+                    action: "get contact attributes",
+                  };
+ 
+                  const attributes = await invokeLambda(getAttributesParams);
+                  const isMissed = attributes.Attributes?.isMissed;
+                  console.log(
+                    "The attributes of the second contact id are",
+                    attributes
+                  );
+                  if (isMissed !== undefined) {
+                    console.log("isMissed value is", isMissed);
+                  } else {
+                    console.log("isMissed value undefined");
+                  }
+                  if (isMissed === "true") {
+                    await handleCallEvent(
+                      "",
+                      agentName,
+                      contact,
+                      "Missed",
+                      window.endpointMatched ? window.endpointMatched.name : null
+                    );
+                  } else {
+                    callStatus = "Disconnected";
+                    console.log(
+                      `Call ended with status: ${callStatus}, destination agent is ${window.endpointMatched.name}`
+                    );
+                    await handleCallEvent(
+                      "",
+                      agentName,
+                      contact,
+                      callStatus,
+                      window.endpointMatched ? window.endpointMatched.name : null
+                    );
+                  }
+                }, 700);
+              } catch (error) {
+                console.error("Error handling contact onEnded event:", error);
+              }
+            });
           });
         });
-      });
-    } catch (error) {
-      console.error("Error initializing agent:", error);
+             
+ 
+      } catch (error) {
+        console.error("Error initializing agent:", error);
+      }}
+    } else {
+      console.log("Waiting for connect.agent to be available...");
     }
-  } else {
-    console.log("Waiting for connect.agent to be available...");
-  }
+  }, 200)
+ 
 }
 
 // Set a timeout of 1 second to attempt agent initialization
 setTimeout(initializeAgent, 1000); // 1 second delay
-
-
-window.addEventListener("message",function(event){
-if(event.data.action==="searchEndpoints"){
-  const {firstName,lastName,extension}=event.data;
-  console.log("Received search parameters");
-  searchEndpoints(firstName,lastName,extension);
+async function displayQuickConnects() {
+  console.log("Agent Instance:", agentInstance);
+  try {
+    const endPoints = await getEndpointsAsync(
+      agentInstance,
+      agentInstance.getAllQueueARNs()
+    );
+    console.log("Endpoints fetched:", endPoints);
+ 
+    // Send the endPoints as a response message
+    displayResults(endPoints)
+  } catch (error) {
+    console.error("Error fetching endpoints:", error);
+  }   
 }
+window.postMessage({
+  action: "getInstanceName",
 });
-async function searchEndpoints(firstName,lastName,extension){  
-  if(!agentInstance){
+window.addEventListener("message", function (event) {
+  if (event.data.action === "searchEndpoints") {
+    const { firstName, lastName, extension } = event.data;
+    console.log("Received search parameters");
+    searchEndpoints(firstName, lastName, extension);
+  } else if (event.data.action === "sendInstanceName") {
+    instanceName = event.data.instanceName;
+  } else if (event.data.action === "popupOpened"){
+    console.log("popup opened");
+    displayQuickConnects();
+  }
+});
+async function searchEndpoints(firstName, lastName, extension) {
+  if (!agentInstance) {
     console.error("Agent not initialized");
     return;
   }
   let searchValue = "";
-    if (firstName) {
-      searchValue = firstName;
-    } else if (lastName) {
-      searchValue = lastName;
-    } else if (extension) {
-      searchValue = extension;
-    }
+  if (firstName) {
+    searchValue = firstName;
+  } else if (lastName) {
+    searchValue = lastName;
+  } else if (extension) {
+    searchValue = extension;
+  }
 
-console.log("The search value is", searchValue);
-let endpoints=[];
-    if (searchValue) {
-       endpoints = await getEndpointsAsync(
-        agentInstance,
-        agentInstance.getAllQueueARNs()
-      );
-    }
-    if(endpoints.length>0){
-    const endpointsMatched = endpoints.filter((endpoint) =>
+  console.log("The search value is", searchValue);
+  let endpoints = [];
+  if (searchValue) {
+    endpoints = await getEndpointsAsync(
+      agentInstance,
+      agentInstance.getAllQueueARNs()
+    );
+  }
+
+  if (endpoints.length > 0) {
+    const endpointMatched = endpoints.filter((endpoint) =>
       endpoint.name.toLowerCase().includes(searchValue.toLowerCase())
     );
-    console.log("the endpoint array is", JSON.stringify(endpointsMatched));
-    displayResults(endpointsMatched);
-  }
-  else{
-    displayNoResults();
+    console.log("the endpoint array is", JSON.stringify(endpointMatched));
+    if (endpointMatched.length > 0) {
+      displayResults(endpointMatched);
+    } else {
+      displayNoResults("User not found");
+    }
+  } else {
+    displayNoResults("No Quick Connects assigned");
   }
 }
 function getEndpointsAsync(agent, queueArns) {
-  
   return new Promise((resolve, reject) => {
     agent.getEndpoints(queueArns, {
       success: function (data) {
@@ -175,6 +277,72 @@ function getEndpointsAsync(agent, queueArns) {
   });
 }
 function displayResults(endpoints) {
+  const testEmployees = endpoints
+  const popup = document.getElementById("searchPopup");
+  const tableContainer = document.createElement("div");
+  tableContainer.style.maxHeight = "300px"; // Max height for the scrollable table
+  tableContainer.style.overflowY = "auto"; // Make it scrollable
+
+  // Create the table to display employees
+  const table = document.createElement("table");
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+  table.style.marginBottom = "10px";
+
+  // Table body (this will be populated with employee names)
+  const tableBody = document.createElement("tbody");
+  table.appendChild(tableBody);
+  tableContainer.appendChild(table);
+  function renderTable(filteredEmployees) {
+    tableBody.innerHTML = ''; // Clear existing rows
+
+    filteredEmployees.forEach(employee => {
+      const row = document.createElement("tr");
+
+      const nameCell = document.createElement("td");
+      nameCell.innerText = employee.name;
+
+      const callCell = document.createElement("td");
+      const callButton = document.createElement("button");
+      callButton.innerText = "Call";
+      callButton.style.padding = "5px 10px";
+      callButton.style.borderRadius = "5px";
+      callButton.style.backgroundColor = "#28a745";
+      callButton.style.color = "#fff";
+      callButton.style.border = "none";
+      callButton.style.cursor = "pointer";
+      callButton.addEventListener("click", () => initiateCall(employee));
+
+      callCell.appendChild(callButton);
+      row.appendChild(nameCell);
+      row.appendChild(callCell);
+      tableBody.appendChild(row);
+    });
+  }
+
+  // Search functionality
+  searchBox.addEventListener("input", () => {
+    const searchValue = searchBox.value.toLowerCase();
+
+    // Filter employees based on the search query
+    const filteredEmployees = testEmployees.filter(employee =>
+      employee.name.toLowerCase().includes(searchValue)
+    );
+
+    // Render the table with filtered employees
+    renderTable(filteredEmployees);
+  });
+
+  // Initial render with all employees
+  renderTable(testEmployees);
+  popup.appendChild(tableContainer); // Scrollable table container
+
+  // Append the popup to the body
+  document.body.appendChild(popup);
+  
+}
+
+function displayNoResults(message) {
   // Find the existing results container (if any) and remove it
   let resultDiv = document.getElementById("result");
   if (!resultDiv) {
@@ -182,66 +350,25 @@ function displayResults(endpoints) {
     resultDiv.id = "result";
     resultDiv.style.marginTop = "20px";
   } else {
-    resultDiv.innerHTML = ''; // Clear previous results if any
-  }
-
-  // Create a list of endpoints
-  const list = document.createElement("ul");
-
-  endpoints.forEach((endpoint) => {
-    const resultItem = document.createElement("li");
-    resultItem.innerText = endpoint.name;
-    const callButton = document.createElement("button");
-          callButton.className = "call-button";
-          callButton.innerText = "Call";
-          callButton.type = "button";
-          callButton.addEventListener("click", (e) => {
-            e.stopPropagation();
-            initiateCall(endpoint);
-          });
-          resultItem.append(callButton);
-    list.appendChild(resultItem);
-  });
-
-  // Append the list to the results container
-  resultDiv.appendChild(list);
-
-  // Find the popup container to insert results into
-  const popup = document.getElementById("searchPopup"); // Assuming your popup has an ID of 'popup'
-  
-  if (popup) {
-    // Append the results container to the popup
-    popup.appendChild(resultDiv);
-  }
-}
-
-function displayNoResults() {
-  // Find the existing results container (if any) and remove it
-  let resultsContainer = document.getElementById("searchResults");
-  if (!resultsContainer) {
-    resultsContainer = document.createElement("div");
-    resultsContainer.id = "searchResults";
-    resultsContainer.style.marginTop = "20px";
-  } else {
-    resultsContainer.innerHTML = ''; // Clear previous results if any
+    resultDiv.innerHTML = ""; // Clear previous results if any
   }
 
   // Display a message when no results are found
-  const message = document.createElement("p");
-  message.innerText = "No results found.";
-  resultsContainer.appendChild(message);
+  const messageContainer = document.createElement("p");
+  messageContainer.innerText = message;
+
+  resultDiv.appendChild(messageContainer);
 
   // Find the popup container to insert results into
-  const popup = document.getElementById("popup"); // Assuming your popup has an ID of 'popup'
-  
+  const popup = document.getElementById("searchPopup");
+
   if (popup) {
     // Append the no-results message to the popup
-    popup.appendChild(resultsContainer);
+    popup.appendChild(resultDiv);
   }
 }
 async function initiateCall(endpoint) {
   try {
-    const instanceName="pacificspecialty-dev";
     console.log("Initiating call to endpoint:", endpoint);
     window.endpointMatched = endpoint;
     let outboundNumber = "";
@@ -266,7 +393,6 @@ async function initiateCall(endpoint) {
 }
 
 async function invokeLambda(payload) {
-  const instanceName = "pacificspecialty-dev";
   console.log("Lambda payload is", JSON.stringify(payload));
   let lambdaFunctionUrl = "";
   if (instanceName === "p3fusion-learning") {
@@ -311,25 +437,21 @@ async function invokeLambda(payload) {
 }
 
 // !!!!!!!!!!!!!!!Call destination Agent!!!!!!!!!!!!!!!!!!!!!!!!
-async function addConnectionAsync(contact, endpoint,agentusername,agentname) {
-  console.log("inside addconnection",agentname,agentusername);
-  
+async function addConnectionAsync(contact, endpoint, agentusername, agentname) {
   return new Promise((resolve, reject) => {
     contact.addConnection(endpoint, {
       success: async function (data) {
         console.log("Connection added:", data);
-        await handleCallEvent( agentusername,
+        await handleCallEvent(
+          agentusername,
           agentname,
           contact,
           "Initiated",
-          window.endpointMatched
-            ? window.endpointMatched.name
-            : null
+          window.endpointMatched ? window.endpointMatched.name : null
         );
         window.transferEndpoint = "";
-        window.endpointMatched="";
-        console.log("endpoint after adding contact",window.endpointMatched);
-        
+        window.endpointMatched = "";
+        console.log("endpoint after adding contact", window.endpointMatched);
 
         if (!agentInstance) {
           console.error("Agent is not initialized yet.");
@@ -344,9 +466,9 @@ async function addConnectionAsync(contact, endpoint,agentusername,agentname) {
     });
   });
 }
-async function handleCallEvent(userName,fromAgent, contact, status, toAgent) {
+async function handleCallEvent(userName, fromAgent, contact, status, toAgent) {
   try {
-    const agentUserName=userName;
+    const agentUserName = userName;
     const contactId = contact.getContactId();
     const sourceAgentName = fromAgent;
     let timestamp_init;
